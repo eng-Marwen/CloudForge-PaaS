@@ -11,6 +11,7 @@ model User {
   id           Int           @id @default(autoincrement())
   username     String        @db.VarChar(100)
   email        String        @unique @db.VarChar(255)
+  phoneNumber  String?       @map("phone_number") @db.VarChar(30)
   passwordHash String        @map("password_hash")
   isActive     Boolean       @default(true) @map("is_active")
   createdAt    DateTime      @default(now()) @map("created_at")
@@ -27,9 +28,22 @@ model Application {
   repository String
   branch     String   @default("main") @db.VarChar(100)
   isDeployed Boolean  @default(false) @map("is_deployed")
+  status     String   @default("failed") @db.VarChar(20)
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  environmentVariables ApplicationEnvironmentVariable[]
 
   @@map("applications")
+}
+
+model ApplicationEnvironmentVariable {
+  id            Int         @id @default(autoincrement())
+  applicationId Int         @map("application_id")
+  key           String      @db.VarChar(100)
+  value         String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, key])
+  @@map("application_environment_variables")
 }

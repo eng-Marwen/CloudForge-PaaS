@@ -5,6 +5,7 @@ export interface AuthUser {
     id: number;
     username: string;
     email: string;
+    phoneNumber?: string | null;
 }
 
 function getJwtSecret(): string {
@@ -46,7 +47,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
         req.user = {
             id: payload.id,
             username: payload.username,
-            email: payload.email
+            email: payload.email,
+            phoneNumber: typeof payload.phoneNumber === "string" ? payload.phoneNumber : null
         };
         next();
     } catch {

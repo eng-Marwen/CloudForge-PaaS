@@ -15,6 +15,7 @@ router.get("/", listApps);
 router.post("/", createApp);
 router.get("/:id", getApp);
 router.patch("/:id", updateApp);
+router.put("/:id", updateApp);
 router.delete("/:id", deleteApp);
 
 export default router;

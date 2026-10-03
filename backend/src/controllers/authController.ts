@@ -6,7 +6,9 @@ import prisma from "../db/database.js";
 const jwtSecret = process.env.JWT_SECRET;
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 
-function createToken(user: { id: number; username: string; email: string }): { token: string; expiresAt: string } {
+type PublicUser = { id: number; username: string; email: string; phoneNumber?: string | null };
+
+function createToken(user: PublicUser): { token: string; expiresAt: string } {
     if (!jwtSecret) {
         throw new Error("JWT_SECRET is not configured");
     }
@@ -23,7 +25,7 @@ function createToken(user: { id: number; username: string; email: string }): { t
 function setAuthCookie(res: Response, token: string): void {
     res.cookie("auth_token", token, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/"
     });
@@ -32,7 +34,7 @@ function setAuthCookie(res: Response, token: string): void {
 export function logout(_req: Request, res: Response): void {
     res.clearCookie("auth_token", {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/"
     });
@@ -40,11 +42,12 @@ export function logout(_req: Request, res: Response): void {
 }
 
 export async function register(req: Request, res: Response): Promise<void> {
-    const { username, email, password, confirmPassword } = req.body as {
+    const { username, email, password, confirmPassword, phoneNumber } = req.body as {
         username?: string;
         email?: string;
         password?: string;
         confirmPassword?: string;
+        phoneNumber?: string;
     };
 
     if (!username || !email || !password || password.length < 8 || !confirmPassword) {
@@ -60,8 +63,8 @@ export async function register(req: Request, res: Response): Promise<void> {
     try {
         const passwordHash = await bcrypt.hash(password, 12);
         const user = await prisma.user.create({
-            data: { username, email: email.toLowerCase(), passwordHash },
-            select: { id: true, username: true, email: true }
+            data: { username: username.trim(), email: email.toLowerCase(), passwordHash, ...(phoneNumber?.trim() ? { phoneNumber: phoneNumber.trim() } : {}) },
+            select: { id: true, username: true, email: true, phoneNumber: true }
         });
 
         const auth = createToken(user);
@@ -92,7 +95,7 @@ export async function login(req: Request, res: Response): Promise<void> {
             return;
         }
 
-        const publicUser = { id: user.id, username: user.username, email: user.email };
+        const publicUser = { id: user.id, username: user.username, email: user.email, phoneNumber: user.phoneNumber };
         const auth = createToken(publicUser);
         setAuthCookie(res, auth.token);
         res.json({ user: publicUser, expiresAt: auth.expiresAt });
@@ -103,4 +106,48 @@ export async function login(req: Request, res: Response): Promise<void> {
 
 export function getCurrentUser(req: Request, res: Response): void {
     res.json({ user: req.user });
+}
+
+export async function deleteAccount(req: Request, res: Response): Promise<void> {
+    await prisma.user.delete({ where: { id: req.user!.id } });
+    res.clearCookie("auth_token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/"
+    });
+    res.json({ message: "Account deleted" });
+}
+
+export async function updateProfile(req: Request, res: Response): Promise<void> {
+    const { username, phoneNumber } = req.body as { username?: string; phoneNumber?: string | null };
+    const data: { username?: string; phoneNumber?: string | null } = {};
+
+    if (username !== undefined) {
+        if (!username.trim()) {
+            res.status(400).json({ error: "Username cannot be empty" });
+            return;
+        }
+        data.username = username.trim();
+    }
+    if (phoneNumber !== undefined) {
+        if (phoneNumber !== null && typeof phoneNumber !== "string") {
+            res.status(400).json({ error: "Phone number must be a string" });
+            return;
+        }
+        data.phoneNumber = phoneNumber?.trim() || null;
+    }
+    if (Object.keys(data).length === 0) {
+        res.status(400).json({ error: "Username or phone number is required" });
+        return;
+    }
+
+    const user = await prisma.user.update({
+        where: { id: req.user!.id },
+        data,
+        select: { id: true, username: true, email: true, phoneNumber: true }
+    });
+    const auth = createToken(user);
+    setAuthCookie(res, auth.token);
+    res.json({ user, expiresAt: auth.expiresAt });
 }
