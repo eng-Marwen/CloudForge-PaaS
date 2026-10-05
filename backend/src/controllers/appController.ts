@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import prisma from "../db/database.js";
+import {publishDeployEvent} from "../queue/producer.js"
 
 function getAppId(value: string | string[]): number | undefined {
 	if (Array.isArray(value)) {
@@ -115,7 +116,8 @@ export async function createApp(req: Request, res: Response): Promise<void> {
 		},
 		include: appInclude
 	});
-
+	console.log("app createddddd")
+	await publishDeployEvent(app);
 	res.status(201).json({ app });
 }
 
@@ -226,6 +228,8 @@ export async function updateApp(req: Request, res: Response): Promise<void> {
 			include: appInclude
 		});
 	});
+
+	await publishDeployEvent(app);
 	res.json({ app });
 }
 
