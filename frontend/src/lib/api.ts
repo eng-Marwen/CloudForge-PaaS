@@ -31,7 +31,7 @@ export const backendApi = {
     get: (id: number) => api.get<{ app: AppRecord }>(`/apps/${id}`),
     create: (payload: ApplicationForm) => api.post<{ app: AppRecord }>("/apps", payload),
     update: (id: number, payload: ApplicationUpdate) =>
-      api.put<{ app: AppRecord }>(`/apps/${id}`, payload),
+      api.patch<{ app: AppRecord }>(`/apps/${id}`, payload),
     remove: (id: number) => api.delete(`/apps/${id}`),
   },
 };
