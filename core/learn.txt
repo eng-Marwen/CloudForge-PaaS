@@ -1,0 +1,25 @@
+ g++ ./a.cpp -o  ./mar.exe --->build code
+./mar.exe ---> execute the code
+rm ./mar.exe ---> clean
+===================
+make : built in tool is installed with the cpp compiler we can put to it cmds binedn in names 
+build:
+	g++ ./a.cpp -o mar.exe
+clean:
+	rm ./mar.exe
+run:
+	./mar.exe
+
+then make build will execute g++ ./a.cpp -o mar.exe
+=======================
+CMake is an open-source, cross-platform build system generator.
+
+It does not compile code directly or create binaries itself; instead, it reads a single configuration file (CMakeLists.txt) and generates the native build files required by your specific OS, compiler, or IDE—such as:
+
+Makefiles for Linux/GCC
+
+Visual Studio solution files (.sln) for Windows/MSVC
+
+Xcode projects for macOS
+
+Ninja files for fast command-line builds
