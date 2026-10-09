@@ -9,7 +9,7 @@ project(CloudForgeCore
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ==========================================
 # RabbitMQ C library
 # ==========================================
@@ -42,7 +42,9 @@ endif()
 
 add_executable(cloudforge_core
     main.cpp
-    src/queue/queue.cpp
+    src/queue.cpp
+    src/deployEvent.cpp
+    src/repositoryManager.cpp
 )
 
 # ==========================================
@@ -51,7 +53,7 @@ add_executable(cloudforge_core
 
 target_include_directories(cloudforge_core
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/include/queue
+        ${CMAKE_SOURCE_DIR}/include/
         ${RABBITMQ_INCLUDE_DIR}
 )
 
@@ -62,4 +64,18 @@ target_include_directories(cloudforge_core
 target_link_libraries(cloudforge_core
     PRIVATE
         ${RABBITMQ_LIBRARY}
+)
+
+# ========================================== 
+# nlohmann/json 
+# ==========================================
+find_package(nlohmann_json REQUIRED)
+
+target_link_libraries(cloudforge_core
+    PRIVATE
+    nlohmann_json::nlohmann_json
+)
+
+target_compile_definitions(cloudforge_core PRIVATE
+    CLOUDFORGE_REPOS_DIR="${CMAKE_SOURCE_DIR}/repos"
 )
