@@ -45,6 +45,7 @@ add_executable(cloudforge_core
     src/queue.cpp
     src/deployEvent.cpp
     src/repositoryManager.cpp
+    src/dockerManager.cpp
 )
 
 # ==========================================
@@ -78,4 +79,23 @@ target_link_libraries(cloudforge_core
 
 target_compile_definitions(cloudforge_core PRIVATE
     CLOUDFORGE_REPOS_DIR="${CMAKE_SOURCE_DIR}/repos"
+)
+
+#============================================
+# env vars from .env (local to `make run` only)
+#============================================
+set(ENV_FILE "${CMAKE_SOURCE_DIR}/.env")
+
+# Re-read .env automatically when it changes.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${ENV_FILE}")
+
+# Only the variables the core needs; any other line in .env is ignored.
+file(STRINGS "${ENV_FILE}" ENV_VARS
+     REGEX "^(DOCKERHUB_USERNAME|DOCKERHUB_TOKEN|DOCKERHUB_REPOSITORY)=")
+
+add_custom_target(run
+    COMMAND ${CMAKE_COMMAND} -E env ${ENV_VARS} $<TARGET_FILE:cloudforge_core>
+    DEPENDS cloudforge_core
+    USES_TERMINAL
+    VERBATIM
 )
