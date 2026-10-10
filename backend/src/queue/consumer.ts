@@ -3,18 +3,19 @@ import { getChannel } from "./queue.js";
 
 const QUEUE_NAME = "deployment.results";
 
-export interface DeploymentResult {
+interface DeploymentResult {
     applicationId: number;
-    status: "deployed" | "failed";
+    status: "deploying" | "deployed" | "failed";
     stage?: string;
     error?: string;
+    image?: string;
+    url?: string;
 }
 
 interface DeploymentResultMessage {
-    event: "deployment.succeeded" | "deployment.failed";
+    event: "deployment.progress" | "deployment.succeeded" | "deployment.failed";
     data: DeploymentResult;
 }
-
 // Thrown for bad messages: retrying would never fix them.
 class InvalidMessageError extends Error {}
 
@@ -28,8 +29,9 @@ const parseMessage = (message: ConsumeMessage): DeploymentResult => {
     }
 
     if (
-        payload?.event !== "deployment.succeeded" &&
-        payload?.event !== "deployment.failed"
+        payload.event !== "deployment.progress" &&
+        payload.event !== "deployment.succeeded" &&
+        payload.event !== "deployment.failed"
     ) {
         throw new InvalidMessageError(`Unsupported event: ${payload?.event}`);
     }
@@ -40,7 +42,11 @@ const parseMessage = (message: ConsumeMessage): DeploymentResult => {
         throw new InvalidMessageError("Invalid applicationId");
     }
 
-    if (result.status !== "deployed" && result.status !== "failed") {
+   if (
+        result.status !== "deploying" &&
+        result.status !== "deployed" &&
+        result.status !== "failed"
+    ) {
         throw new InvalidMessageError(`Invalid status: ${result.status}`);
     }
 
