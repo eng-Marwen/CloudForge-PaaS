@@ -2,7 +2,8 @@
 #define QUEUE_HPP
 
 #include <string>
-#include <amqp.h> 
+#include <amqp.h>
+#include <nlohmann/json.hpp>
 #include "deployEvent.hpp"
 
 class Queue
@@ -12,15 +13,34 @@ private:
 
     DeployEvent parseMessage(const std::string& message);
 
-    // Sends the outcome of a deployment to the backend ("deployment.results").
-    void publishResult(
+    // Full pipeline: clone -> validate -> build -> push (k8s later).
+    void handleDeploy(amqp_connection_state_t connection,
+                      const DeployEvent& event);
+
+    // Intermediate step reached: event "deployment.progress", status "deploying".
+    void publishProgress(
+        amqp_connection_state_t connection,
+        const DeployEvent& event,
+        const std::string& stage,
+        const std::string& image = ""
+    );
+
+    // Final outcome: "deployment.succeeded" (deployed) or "deployment.failed".
+   void publishResult(
         amqp_connection_state_t connection,
         const DeployEvent& event,
         bool success,
         const std::string& stage = "",
-        const std::string& error = ""
+        const std::string& error = "",
+        const std::string& image = "",
+        const std::string& url = ""
     );
 
+    // Low-level: sends any JSON message to "deployment.results".
+    void publishMessage(
+        amqp_connection_state_t connection,
+        const nlohmann::json& message
+    );
 
 public:
     explicit Queue(const std::string& queueName);
