@@ -186,7 +186,7 @@ void Queue::consume()
                 {
                     std::cout << "Application repository is cloned.\n";
 
-                    // Step 3: validate (exactly one Dockerfile).
+                    // Step 3: validate (exactly one Dockerfile).  (serach what is namespace and std )
                     const auto repoPath = RepositoryManager::getRepositoryPath(*event);
                     std::filesystem::path dockerfilePath;
                     std::string validationError;
@@ -202,14 +202,62 @@ void Queue::consume()
                         publishResult(connection, *event, false, "validation",
                                     validationError);
                     }
+                    
                     else
                     {
-                        std::cout << "Dockerfile found: " << dockerfilePath << '\n';
+                      const char* hubUser  = std::getenv("DOCKERHUB_USERNAME");
+                    const char* hubToken = std::getenv("DOCKERHUB_TOKEN");
+                    const char* hubRepo  = std::getenv("DOCKERHUB_REPOSITORY");
 
-                        // TEMPORARY: move this after the last step once Docker build/run exist.
-                        publishResult(connection, *event, true, "validation");
+                    std::string missing;
+                    if (!hubUser)  missing += " DOCKERHUB_USERNAME";
+                    if (!hubToken) missing += " DOCKERHUB_TOKEN";
+                    if (!hubRepo)  missing += " DOCKERHUB_REPOSITORY";
+                    if (!missing.empty())
+                    {
+                        RepositoryManager::removeRepository(repoPath);
+                        publishResult(connection, *event, false, "config",
+                                    "Missing environment variables on the core:" + missing);
+                    }
 
-                        // Next: docker build using dockerfilePath.parent_path() as context.
+                    if (!hubUser || !hubToken || !hubRepo)
+                    {
+                        RepositoryManager::removeRepository(repoPath);
+                        publishResult(connection, *event, false, "config",
+                                    "Docker Hub settings are not configured on the core");
+                    }
+                    else
+                    {
+                        const std::string imageName =
+                            DockerManager::getImageName(*event, hubRepo);   // <-- changed
+                            std::string dockerError;
+
+                            // Build
+                            const bool built =
+                                DockerManager::buildImage(dockerfilePath, imageName, dockerError);
+
+                            // The repo is no longer needed once the build is done.
+                            // Deleted on failure too, so a retry doesn't hit "already exists".
+                            RepositoryManager::removeRepository(repoPath);
+
+                            if (!built)
+                            {
+                                publishResult(connection, *event, false, "build", dockerError);
+                            }
+                            // Login + push (only if the build succeeded)
+                            else if (!DockerManager::login(hubUser, hubToken, dockerError) ||
+                                    !DockerManager::pushImage(imageName, dockerError))
+                            {
+                                publishResult(connection, *event, false, "push", dockerError);
+                            }
+                            else
+                            {
+                                std::cout << "Image available on Docker Hub: " << imageName << '\n';
+
+                                // Send the image name so the backend can store it.
+                                publishResult(connection, *event, true, "push", "", imageName);
+                            }
+                        }
                     }
                 }
             else
@@ -278,7 +326,8 @@ void Queue::publishResult(
     const DeployEvent& event,
     bool success,
     const std::string& stage,
-    const std::string& error)
+    const std::string& error,
+    const std::string& image)
 {
     // Must match what the Node consumer validates.
     nlohmann::json data = {
@@ -288,6 +337,7 @@ void Queue::publishResult(
 
     if (!stage.empty()) data["stage"] = stage;
     if (!error.empty()) data["error"] = error;
+    if (!image.empty()) data["image"] = image; 
 
     nlohmann::json message = {
         {"event", success ? "deployment.succeeded" : "deployment.failed"},
