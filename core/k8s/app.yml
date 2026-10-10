@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{NAME}}
+  namespace: {{NAMESPACE}}
+  labels:
+    app: {{NAME}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{NAME}}
+  template:
+    metadata:
+      labels:
+        app: {{NAME}}
+    spec:
+      containers:
+        - name: app
+          image: {{IMAGE}}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{PORT}}
+          envFrom:
+            - secretRef:
+                name: {{NAME}}-env
+          readinessProbe:
+            tcpSocket:
+              port: {{PORT}}
+            initialDelaySeconds: 2
+            periodSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{NAME}}
+  namespace: {{NAMESPACE}}
+spec:
+  type: NodePort
+  selector:
+    app: {{NAME}}
+  ports:
+    - port: {{PORT}}
+      targetPort: {{PORT}}
