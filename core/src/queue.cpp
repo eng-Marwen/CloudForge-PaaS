@@ -1,6 +1,8 @@
 #include "queue.hpp"
 #include "repositoryManager.hpp"
-
+#include "dockerManager.hpp"
+#include "k8sManager.hpp"
+#include <cstdlib>
 #include <iostream>
 #include <optional>
 #include <amqp.h>
@@ -181,92 +183,7 @@ void Queue::consume()
             event = parseMessage(message);
             std::cout << "\n=== Deployment Event ===\nID:" << event->id << "\n";
 
-            // Step 2: Prepare the repository.
-            if (RepositoryManager::cloneRepository(*event))
-                {
-                    std::cout << "Application repository is cloned.\n";
-
-                    // Step 3: validate (exactly one Dockerfile).  (serach what is namespace and std )
-                    const auto repoPath = RepositoryManager::getRepositoryPath(*event);
-                    std::filesystem::path dockerfilePath;
-                    std::string validationError;
-
-                    if (!RepositoryManager::validateRepository(
-                            repoPath, dockerfilePath, validationError))
-                    {
-                        std::cerr << "Validation failed: " << validationError << '\n';
-
-                        // Remove the clone so the user can fix the repo and redeploy.
-                        RepositoryManager::removeRepository(repoPath);
-
-                        publishResult(connection, *event, false, "validation",
-                                    validationError);
-                    }
-                    
-                    else
-                    {
-                      const char* hubUser  = std::getenv("DOCKERHUB_USERNAME");
-                    const char* hubToken = std::getenv("DOCKERHUB_TOKEN");
-                    const char* hubRepo  = std::getenv("DOCKERHUB_REPOSITORY");
-
-                    std::string missing;
-                    if (!hubUser)  missing += " DOCKERHUB_USERNAME";
-                    if (!hubToken) missing += " DOCKERHUB_TOKEN";
-                    if (!hubRepo)  missing += " DOCKERHUB_REPOSITORY";
-                    if (!missing.empty())
-                    {
-                        RepositoryManager::removeRepository(repoPath);
-                        publishResult(connection, *event, false, "config",
-                                    "Missing environment variables on the core:" + missing);
-                    }
-
-                    if (!hubUser || !hubToken || !hubRepo)
-                    {
-                        RepositoryManager::removeRepository(repoPath);
-                        publishResult(connection, *event, false, "config",
-                                    "Docker Hub settings are not configured on the core");
-                    }
-                    else
-                    {
-                        const std::string imageName =
-                            DockerManager::getImageName(*event, hubRepo);   // <-- changed
-                            std::string dockerError;
-
-                            // Build
-                            const bool built =
-                                DockerManager::buildImage(dockerfilePath, imageName, dockerError);
-
-                            // The repo is no longer needed once the build is done.
-                            // Deleted on failure too, so a retry doesn't hit "already exists".
-                            RepositoryManager::removeRepository(repoPath);
-
-                            if (!built)
-                            {
-                                publishResult(connection, *event, false, "build", dockerError);
-                            }
-                            // Login + push (only if the build succeeded)
-                            else if (!DockerManager::login(hubUser, hubToken, dockerError) ||
-                                    !DockerManager::pushImage(imageName, dockerError))
-                            {
-                                publishResult(connection, *event, false, "push", dockerError);
-                            }
-                            else
-                            {
-                                std::cout << "Image available on Docker Hub: " << imageName << '\n';
-
-                                // Send the image name so the backend can store it.
-                                publishResult(connection, *event, true, "push", "", imageName);
-                            }
-                        }
-                    }
-                }
-            else
-            {
-                std::cerr << "Repository preparation failed.\n";
-                publishResult(connection, *event, false, "clone",
-                            "Could not clone repository");
-            }
-
+            handleDeploy(connection, *event);
         }
         catch (const std::exception& e)
         {
@@ -319,7 +236,151 @@ DeployEvent Queue::parseMessage(const std::string& message)
     );
 }
 
-// The producer: publishes the outcome to "deployment.results".
+// The deployment pipeline. Every step reports to the backend:
+//   cloned -> built -> pushed   (progress, status "deploying")
+//   any failure                 (failed, with the stage that broke)
+void Queue::handleDeploy(amqp_connection_state_t connection,
+                         const DeployEvent& event)
+{
+    // ---- Step 1: clone ----
+    if (!RepositoryManager::cloneRepository(event))
+    {
+        std::cerr << "Repository preparation failed.\n";
+        publishResult(connection, event, false, "clone",
+                      "Could not clone repository");
+        return;
+    }
+
+    std::cout << "Application repository is cloned.\n";
+    publishProgress(connection, event, "cloned");
+
+    const auto repoPath = RepositoryManager::getRepositoryPath(event);
+
+    // ---- Step 2: validate (exactly one Dockerfile) ----
+    std::filesystem::path dockerfilePath;
+    std::string error;
+
+    if (!RepositoryManager::validateRepository(repoPath, dockerfilePath, error))
+    {
+        std::cerr << "Validation failed: " << error << '\n';
+
+        // Remove the clone so the user can fix the repo and redeploy.
+        RepositoryManager::removeRepository(repoPath);
+
+        publishResult(connection, event, false, "validation", error);
+        return;
+    }
+
+    // ---- Config check ----
+    const char* hubUser  = std::getenv("DOCKERHUB_USERNAME");
+    const char* hubToken = std::getenv("DOCKERHUB_TOKEN");
+    const char* hubRepo  = std::getenv("DOCKERHUB_REPOSITORY");
+
+    std::string missing;
+    if (!hubUser)  missing += " DOCKERHUB_USERNAME";
+    if (!hubToken) missing += " DOCKERHUB_TOKEN";
+    if (!hubRepo)  missing += " DOCKERHUB_REPOSITORY";
+
+    if (!missing.empty())
+    {
+        RepositoryManager::removeRepository(repoPath);
+        publishResult(connection, event, false, "config",
+                      "Missing environment variables on the core:" + missing);
+        return;
+    }
+
+    // ---- Step 3: build ----
+    const std::string imageName = DockerManager::getImageName(event, hubRepo);
+    const bool built = DockerManager::buildImage(dockerfilePath, imageName, error);
+
+    // The repo is no longer needed once the build is done.
+    // Deleted on failure too, so a retry doesn't hit "already exists".
+    RepositoryManager::removeRepository(repoPath);
+
+    if (!built)
+    {
+        publishResult(connection, event, false, "build", error);
+        return;
+    }
+
+    publishProgress(connection, event, "built");
+
+
+
+        // The app's port comes from the image's EXPOSE. Checked before pushing.
+    int port = 0;
+
+    if (!DockerManager::getExposedPort(imageName, port, error))
+    {
+        publishResult(connection, event, false, "validation", error);
+        return;
+    }
+
+    // ---- Step 4: login + push ----
+    if (!DockerManager::login(hubUser, hubToken, error) ||
+        !DockerManager::pushImage(imageName, error))
+    {
+        publishResult(connection, event, false, "push", error);
+        return;
+    }
+
+    std::cout << "Image available on Docker Hub: " << imageName << '\n';
+    publishProgress(connection, event, "pushed", imageName);
+
+    // ---- Step 5: deploy on Kubernetes ----
+    if (!K8sManager::apply(event, imageName, port, error))
+    {
+        publishResult(connection, event, false, "k8s-apply", error, imageName);
+        return;
+    }
+
+    publishProgress(connection, event, "k8s-applied", imageName);
+
+    if (!K8sManager::waitForRollout(event, error))
+    {
+        publishResult(connection, event, false, "k8s-rollout", error, imageName);
+        return;
+    }
+
+        std::string url;
+
+    if (!K8sManager::getUrl(event, url, error))
+    {
+        publishResult(connection, event, false, "k8s-url", error, imageName);
+        return;
+    }
+
+    std::cout << "Application is live: " << url << '\n';
+
+    publishResult(connection, event, true, "deployed", "", imageName, url);
+
+
+}
+
+// Intermediate step reached. The deployment is still in progress.
+void Queue::publishProgress(
+    amqp_connection_state_t connection,
+    const DeployEvent& event,
+    const std::string& stage,
+    const std::string& image)
+{
+    nlohmann::json data = {
+        {"applicationId", event.id},
+        {"status", "deploying"},
+        {"stage", stage}
+    };
+
+    if (!image.empty()) data["image"] = image;
+
+    nlohmann::json message = {
+        {"event", "deployment.progress"},
+        {"data", data}
+    };
+
+    publishMessage(connection, message);
+}
+
+// Final outcome of the deployment.
 // Note: no default arguments here, they live in queue.hpp.
 void Queue::publishResult(
     amqp_connection_state_t connection,
@@ -327,7 +388,8 @@ void Queue::publishResult(
     bool success,
     const std::string& stage,
     const std::string& error,
-    const std::string& image)
+    const std::string& image,
+    const std::string& url)
 {
     // Must match what the Node consumer validates.
     nlohmann::json data = {
@@ -337,14 +399,22 @@ void Queue::publishResult(
 
     if (!stage.empty()) data["stage"] = stage;
     if (!error.empty()) data["error"] = error;
-    if (!image.empty()) data["image"] = image; 
+    if (!image.empty()) data["image"] = image;
+    if (!url.empty())   data["url"]   = url; 
 
     nlohmann::json message = {
         {"event", success ? "deployment.succeeded" : "deployment.failed"},
         {"data", data}
     };
 
-    // 'replace' avoids a throw if the error text has invalid UTF-8.
+    publishMessage(connection, message);
+}
+
+// The only place that publishes to "deployment.results".
+void Queue::publishMessage(amqp_connection_state_t connection,
+                           const nlohmann::json& message)
+{
+    // 'replace' avoids a throw if the text has invalid UTF-8.
     const std::string payload = message.dump(
         -1, ' ', false, nlohmann::json::error_handler_t::replace);
 
@@ -371,10 +441,10 @@ void Queue::publishResult(
 
     if (status != AMQP_STATUS_OK)
     {
-        std::cerr << "Failed to publish deployment result: "
+        std::cerr << "Failed to publish message: "
                   << amqp_error_string2(status) << '\n';
         return;
     }
 
-    std::cout << "Published result: " << payload << '\n';
+    std::cout << "Published: " << payload << '\n';
 }
