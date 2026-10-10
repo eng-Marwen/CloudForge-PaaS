@@ -10,7 +10,7 @@ class DockerManager {
 public:
     // "user/cloudforge-<id>-<name>:<timestamp>-<random>", new on every call.
     static std::string getImageName(const DeployEvent& event,
-                                    const std::string& dockerHubUser);
+                                    const std::string& repository);
 
     static bool buildImage(const std::filesystem::path& dockerfilePath,
                            const std::string& imageName,
@@ -31,6 +31,10 @@ public:
                                   const std::string& user,
                                   const std::string& token,
                                   std::string& error);
+
+    static bool getExposedPort(const std::string& imageName,
+                               int& port,
+                               std::string& error);
 };
 
 #endif
