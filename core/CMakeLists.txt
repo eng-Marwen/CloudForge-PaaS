@@ -46,6 +46,8 @@ add_executable(cloudforge_core
     src/deployEvent.cpp
     src/repositoryManager.cpp
     src/dockerManager.cpp
+    src/k8sManager.cpp
+    src/processUtil.cpp
 )
 
 # ==========================================
@@ -79,6 +81,7 @@ target_link_libraries(cloudforge_core
 
 target_compile_definitions(cloudforge_core PRIVATE
     CLOUDFORGE_REPOS_DIR="${CMAKE_SOURCE_DIR}/repos"
+    CLOUDFORGE_K8S_DIR="${CMAKE_SOURCE_DIR}/k8s"
 )
 
 #============================================
@@ -89,9 +92,8 @@ set(ENV_FILE "${CMAKE_SOURCE_DIR}/.env")
 # Re-read .env automatically when it changes.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${ENV_FILE}")
 
-# Only the variables the core needs; any other line in .env is ignored.
 file(STRINGS "${ENV_FILE}" ENV_VARS
-     REGEX "^(DOCKERHUB_USERNAME|DOCKERHUB_TOKEN|DOCKERHUB_REPOSITORY)=")
+     REGEX "^(DOCKERHUB_[A-Z_]+|K8S_[A-Z_]+|APP_BASE_DOMAIN)=")
 
 add_custom_target(run
     COMMAND ${CMAKE_COMMAND} -E env ${ENV_VARS} $<TARGET_FILE:cloudforge_core>
