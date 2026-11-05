@@ -21,7 +21,7 @@ export default function Dashboard({ apps, username }: { apps: AppRecord[]; usern
         subtitle="Manage and deploy your applications from one quiet workspace."
         action={
           <Link
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 transition hover:bg-emerald-700"
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-indigo-500 px-4 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20 transition hover:bg-indigo-400"
             to="/applications/new"
           >
             <span className="grid h-5 w-5 place-items-center rounded-md bg-white/15 text-white">
@@ -33,10 +33,10 @@ export default function Dashboard({ apps, username }: { apps: AppRecord[]; usern
       />
       <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["Applications", apps.length, "text-slate-800"],
-          ["Running", running, "text-emerald-700"],
-          ["Deploying", deploying, "text-amber-600"],
-          ["Failed", failed, "text-red-700"],
+          ["Applications", apps.length, "text-slate-100"],
+          ["Running", running, "text-emerald-400"],
+          ["Deploying", deploying, "text-amber-300"],
+          ["Failed", failed, "text-red-400"],
         ].map(([label, value, color]) => (
           <div key={label} className={`${panel} px-6 py-5 transition duration-200 hover:-translate-y-0.5`}>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
@@ -47,16 +47,16 @@ export default function Dashboard({ apps, username }: { apps: AppRecord[]; usern
       <section>
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
-            <h2 className="font-semibold text-slate-800">Recent applications</h2>
+            <h2 className="font-semibold text-slate-100">Recent applications</h2>
             <p className="mt-1 text-xs text-slate-400">Your latest deployment activity.</p>
           </div>
-          <Link className="text-sm font-medium text-emerald-700 transition hover:text-emerald-800" to="/applications">
+          <Link className="text-sm font-medium text-indigo-300 transition hover:text-indigo-200" to="/applications">
             View all
           </Link>
         </div>
         <div className={`${panel} overflow-x-auto`}>
           <table className="w-full min-w-[40rem] text-left text-sm">
-            <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <thead className="bg-[#0d1320] text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-5 py-3">Application</th>
                 <th className="px-5 py-3">Status</th>
@@ -73,9 +73,9 @@ export default function Dashboard({ apps, username }: { apps: AppRecord[]; usern
                 </tr>
               ) : (
                 apps.slice(0, 4).map((app) => (
-                  <tr key={app.id} className="transition hover:bg-slate-50/80">
+                  <tr key={app.id} className="transition hover:bg-[#172033]">
                     <td className="px-5 py-4">
-                      <Link className="block max-w-48 truncate font-semibold text-slate-800 underline decoration-slate-300 underline-offset-2 hover:text-emerald-700" title={app.name} to={`/applications/${app.id}`}>
+                      <Link className="block max-w-48 truncate font-semibold text-slate-100 underline decoration-slate-600 underline-offset-2 hover:text-indigo-300" title={app.name} to={`/applications/${app.id}`}>
                         {app.name}
                       </Link>
                     </td>

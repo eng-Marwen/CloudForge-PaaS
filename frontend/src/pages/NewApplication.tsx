@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { GitBranch, Github, Plus } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { backendApi, getApiError } from "../lib/api";
 import { parseEnvironmentText } from "../lib/env";
 import { PrimaryButton, SecondaryButton, VisibilityToggle, field, panel } from "./shared";
-import type { ApplicationForm } from "./types";
+import type { AppRecord, ApplicationForm } from "./types";
 
 function AddLogo() {
   return (
@@ -15,7 +15,8 @@ function AddLogo() {
   );
 }
 
-export default function NewApplication() {
+export default function NewApplication({ onAppChange }: { onAppChange: (app: AppRecord) => void }) {
+  const navigate = useNavigate();
   const {
     control,
     register,
@@ -51,9 +52,10 @@ export default function NewApplication() {
       environmentVariables = result.variables;
     }
     try {
-      await backendApi.apps.create({ ...data, environmentVariables });
+      const { data: response } = await backendApi.apps.create({ ...data, environmentVariables });
+      onAppChange(response.app);
       setEnvText("");
-      window.location.href = "/applications";
+      navigate(`/applications/${response.app.id}`);
     } catch (requestError: unknown) {
       setError(getApiError(requestError, "Unable to create application"));
     }
@@ -65,9 +67,9 @@ export default function NewApplication() {
         <div className="flex items-start gap-4">
           <AddLogo />
           <div>
-            <p className="text-xs font-bold uppercase tracking-[.18em] text-emerald-700">New application</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">Add application</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+            <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-300">New application</p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-50">Add application</h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
               Connect a GitHub repository and CloudForge will handle the deployment.
             </p>
           </div>
@@ -76,21 +78,21 @@ export default function NewApplication() {
 
       <form className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)]" onSubmit={handleSubmit(submit)}>
         {error && (
-          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600 lg:col-span-2">{error}</p>
+          <p className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-300 lg:col-span-2">{error}</p>
         )}
 
         <section className={`${panel} overflow-hidden`}>
-          <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-6 py-5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-500 text-white">
+          <div className="flex items-center gap-3 border-b border-[#253047] bg-[#0d1320] px-6 py-5">
+            <span className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-500 text-white">
               <Plus className="h-4 w-4 text-white" strokeWidth={2.5} />
             </span>
             <div>
-              <h2 className="text-sm font-semibold text-slate-800">Application details</h2>
+              <h2 className="text-sm font-semibold text-slate-100">Application details</h2>
               <p className="text-xs text-slate-400">Name, repository, and branch</p>
             </div>
           </div>
           <div className="grid gap-5 p-6 sm:p-8">
-            <label className="grid gap-2 text-sm font-semibold text-slate-600">
+            <label className="grid gap-2 text-sm font-semibold text-slate-300">
               Application name
               <input
                 className={field}
@@ -100,7 +102,7 @@ export default function NewApplication() {
               />
               {errors.name && <span className="text-xs text-red-600">{errors.name.message}</span>}
             </label>
-            <label className="grid gap-2 text-sm font-semibold text-slate-600">
+            <label className="grid gap-2 text-sm font-semibold text-slate-300">
               GitHub repository
               <div className="relative">
                 <Github className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -118,7 +120,7 @@ export default function NewApplication() {
               </div>
               {errors.repository && <span className="text-xs text-red-600">{errors.repository.message}</span>}
             </label>
-            <label className="grid gap-2 text-sm font-semibold text-slate-600">
+            <label className="grid gap-2 text-sm font-semibold text-slate-300">
               Branch
               <div className="relative">
                 <GitBranch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -130,12 +132,12 @@ export default function NewApplication() {
         </section>
 
         <section className={`${panel} overflow-hidden`}>
-          <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-6 py-5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-white text-slate-500 ring-1 ring-slate-200">
+          <div className="flex items-center gap-3 border-b border-[#253047] bg-[#0d1320] px-6 py-5">
+            <span className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-500/15 text-indigo-300 ring-1 ring-indigo-400/20">
               <span className="text-[11px] font-bold">.env</span>
             </span>
             <div>
-              <h2 className="text-sm font-semibold text-slate-800">Environment variables</h2>
+              <h2 className="text-sm font-semibold text-slate-100">Environment variables</h2>
               <p className="text-xs text-slate-400">Used during deployment for this application</p>
             </div>
           </div>
@@ -158,7 +160,7 @@ export default function NewApplication() {
                     pattern: { value: /^[A-Za-z_][A-Za-z0-9_]*$/, message: "Use letters, numbers, and underscores" },
                   })}
                 />
-                <div className="flex min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-500/10">
+                <div className="flex min-w-0 overflow-hidden rounded-lg border border-[#253047] bg-[#0d1320] focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-500/10">
                   <input
                     className="w-full min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-normal outline-none"
                     type={visibleValues.has(fieldItem.id) ? "text" : "password"}

@@ -70,7 +70,7 @@ export default function Applications({
         subtitle="Everything you have deployed through CloudForge."
         action={
           <Link
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 transition hover:bg-emerald-700"
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-indigo-500 px-4 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20 transition hover:bg-indigo-400"
             to="/applications/new"
           >
             <span className="grid h-5 w-5 place-items-center rounded-md bg-white/15 text-white">
@@ -81,12 +81,12 @@ export default function Applications({
         }
       />
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap rounded-xl bg-white p-1 ring-1 ring-slate-200">
+        <div className="flex flex-wrap rounded-lg bg-[#111827] p-1 ring-1 ring-[#253047]">
           {filters.map((item) => (
             <button
               key={item.value}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                filter === item.value ? "bg-emerald-50 text-emerald-800" : "text-slate-500 hover:text-slate-800"
+                filter === item.value ? "bg-indigo-500/15 text-indigo-300" : "text-slate-500 hover:text-slate-200"
               }`}
               onClick={() => {
                 void filterApps(item.value);
@@ -101,7 +101,7 @@ export default function Applications({
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       <div className={`${panel} overflow-x-auto`}>
         <table className="w-full min-w-[52rem] text-left text-sm">
-          <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <thead className="bg-[#0d1320] text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-5 py-3">Application</th>
               <th className="px-5 py-3">Status</th>
@@ -111,7 +111,7 @@ export default function Applications({
               <th className="px-5 py-3">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[#1b2537]">
             {loading ? (
               <tr>
                 <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
@@ -126,10 +126,10 @@ export default function Applications({
               </tr>
             ) : (
               apps.map((app) => (
-                <tr key={app.id} className="transition hover:bg-slate-50/80">
+                <tr key={app.id} className="transition hover:bg-[#172033]">
                   <td className="px-5 py-4">
                     <Link
-                      className="font-semibold text-slate-800 underline decoration-slate-300 underline-offset-2 hover:text-emerald-700"
+                      className="font-semibold text-slate-100 underline decoration-slate-600 underline-offset-2 hover:text-indigo-300"
                       title={app.name}
                       to={`/applications/${app.id}`}
                     >
@@ -146,11 +146,11 @@ export default function Applications({
                   <td className="px-5 py-4 text-slate-500">{formatDate(app.createdAt)}</td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap gap-2">
-                      <Link className={`${actionButton} border-slate-200 bg-white text-slate-600 hover:bg-slate-50`} to={`/applications/${app.id}?edit=1`}>
+                      <Link className={`${actionButton} border-[#334155] bg-[#172033] text-slate-300 hover:border-indigo-400 hover:bg-[#202b46]`} to={`/applications/${app.id}?edit=1`}>
                         Edit
                       </Link>
                       <button
-                        className={`${actionButton} border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}
+                        className={`${actionButton} border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/20`}
                         onClick={() => {
                           void toggleDeployment(app);
                         }}
@@ -158,7 +158,7 @@ export default function Applications({
                         {app.status === "running" ? "Stop" : "Deploy"}
                       </button>
                       <button
-                        className={`${actionButton} border-red-200 bg-red-50 text-red-700 hover:bg-red-100`}
+                        className={`${actionButton} border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20`}
                         onClick={() => setDeleteTarget(app)}
                       >
                         Delete

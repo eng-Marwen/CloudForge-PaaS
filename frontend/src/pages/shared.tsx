@@ -3,9 +3,9 @@ import { Eye, EyeOff } from "lucide-react";
 import type { DeploymentStatus } from "./types";
 
 export const panel =
-  "rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]";
+  "rounded-xl border border-[#253047] bg-[#111827] shadow-[0_12px_30px_rgba(0,0,0,0.12)]";
 export const field =
-  "w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-normal text-slate-800 outline-none transition duration-200 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10";
+  "w-full min-w-0 rounded-lg border border-[#253047] bg-[#0d1320] px-3.5 py-2.5 font-normal text-slate-100 outline-none transition duration-200 placeholder:text-slate-500 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10";
 const button =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition duration-200";
 
@@ -13,7 +13,7 @@ export function VisibilityToggle({ visible, onClick }: { visible: boolean; onCli
   return (
     <button
       type="button"
-      className="grid shrink-0 place-items-center px-3 text-slate-400 transition hover:text-slate-700"
+      className="grid shrink-0 place-items-center px-3 text-slate-500 transition hover:text-slate-200"
       onClick={onClick}
       aria-label={visible ? "Hide value" : "Show value"}
     >
@@ -36,7 +36,7 @@ export function RepoLink({ repository, className = "" }: { repository: string; c
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`text-slate-500 underline decoration-slate-300 underline-offset-2 transition hover:text-slate-700 ${className}`}
+      className={`text-slate-400 underline decoration-slate-600 underline-offset-2 transition hover:text-indigo-300 ${className}`}
       title={repository}
     >
       {repository}
@@ -58,10 +58,10 @@ export function Header({
   return (
     <div className="mb-8 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-end">
       <div>
-        <h1 className={`text-3xl font-semibold tracking-tight text-slate-900 ${underlineTitle ? "underline decoration-slate-300 underline-offset-4" : ""}`}>
+        <h1 className={`text-3xl font-semibold tracking-tight text-slate-50 ${underlineTitle ? "underline decoration-slate-600 underline-offset-4" : ""}`}>
           {title}
         </h1>
-        {subtitle && <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">{subtitle}</p>}
+        {subtitle && <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -84,7 +84,7 @@ export function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${button} border-emerald-600 bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-700`}
+      className={`${button} border-indigo-500 bg-indigo-500 text-white shadow-sm shadow-indigo-500/20 hover:bg-indigo-400`}
     >
       {children}
     </button>
@@ -104,7 +104,7 @@ export function SecondaryButton({
     <button
       type={type}
       onClick={onClick}
-      className={`${button} border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50`}
+      className={`${button} border-[#253047] bg-[#111827] text-slate-300 hover:border-indigo-400 hover:bg-[#172033]`}
     >
       {children}
     </button>
@@ -114,9 +114,9 @@ export function SecondaryButton({
 export function Status({ status, deployed }: { status?: DeploymentStatus; deployed?: boolean }) {
   const currentStatus = status ?? (deployed ? "running" : "failed");
   const statusStyles = {
-    deploying: "bg-amber-50 text-amber-800 ring-amber-200",
-    running: "bg-emerald-50 text-emerald-800 ring-emerald-200",
-    failed: "bg-red-50 text-red-700 ring-red-200",
+    deploying: "bg-amber-400/10 text-amber-300 ring-amber-400/30",
+    running: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/30",
+    failed: "bg-red-400/10 text-red-300 ring-red-400/30",
   } as const;
   const dotStyles = {
     deploying: "bg-amber-500",
@@ -149,15 +149,15 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-5 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#050811]/75 p-5 backdrop-blur-sm">
       <div className={`dialog-enter ${panel} w-full max-w-md p-6 shadow-2xl`}>
-        <p className="text-xs font-bold uppercase tracking-[.16em] text-red-600">Confirm action</p>
-        <h2 className="mt-3 text-xl font-semibold text-slate-900">{title}</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-500">{message}</p>
+        <p className="text-xs font-bold uppercase tracking-[.16em] text-red-300">Confirm action</p>
+        <h2 className="mt-3 text-xl font-semibold text-slate-100">{title}</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-400">{message}</p>
         <div className="mt-6 flex justify-end gap-2">
           <SecondaryButton onClick={onCancel}>Cancel</SecondaryButton>
           <button
-            className="inline-flex min-h-10 items-center rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-65"
+            className="inline-flex min-h-10 items-center rounded-xl border border-red-400/30 bg-red-500 px-4 text-sm font-semibold text-white transition hover:bg-red-400 disabled:opacity-65"
             onClick={onConfirm}
             disabled={busy}
           >

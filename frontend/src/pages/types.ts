@@ -5,6 +5,11 @@ export type AppRecord = {
   branch: string;
   isDeployed: boolean;
   status: DeploymentStatus;
+  deploymentStage?: string | null;
+  deploymentMessage?: string | null;
+  deploymentImage?: string | null;
+  deploymentError?: string | null;
+  deploymentUrl?: string | null;
   createdAt: string;
   updatedAt?: string;
   environmentVariables: EnvironmentVariable[];

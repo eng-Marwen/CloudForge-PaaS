@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   BrowserRouter,
   NavLink,
@@ -47,8 +47,9 @@ function AppsIcon() {
 function SettingsIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="8" r="2.1" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M8 1.7v1.5M8 12.8v1.5M1.7 8h1.5M12.8 8h1.5M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M12.7 3.3l-1.1 1.1M4.4 11.6l-1.1 1.1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M2 5h12M2 11h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="6" cy="5" r="1.5" fill="currentColor" />
+      <circle cx="10" cy="11" r="1.5" fill="currentColor" />
     </svg>
   );
 }
@@ -59,10 +60,10 @@ function Layout({ children, user, onLogout }: { children: ReactNode; user: User;
   const initial = user.username.trim().charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen text-slate-800">
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-slate-200/80 bg-white/90 px-4 py-6 backdrop-blur">
+    <div className="min-h-screen bg-[#090d16] text-slate-100">
+      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-[#253047] bg-[#0d1320] px-4 py-6">
         <strong className="flex items-center gap-3 px-2 text-base tracking-tight">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400 text-xs font-bold text-slate-900">CF</span>
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-500 text-xs font-bold text-white">CF</span>
           CloudForge
         </strong>
         <p className="mt-10 px-3 text-[11px] font-bold uppercase tracking-[.18em] text-slate-400">
@@ -77,8 +78,8 @@ function Layout({ children, user, onLogout }: { children: ReactNode; user: User;
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition duration-200 ${
                   isActive
-                    ? "bg-emerald-50 font-semibold text-emerald-800 shadow-sm"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                    ? "bg-indigo-500/15 font-semibold text-indigo-300 shadow-sm"
+                    : "text-slate-400 hover:bg-[#172033] hover:text-slate-100"
                 }`
               }
             >
@@ -87,16 +88,16 @@ function Layout({ children, user, onLogout }: { children: ReactNode; user: User;
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto rounded-2xl bg-slate-50 px-3 py-3">
-          <p className="text-xs font-semibold text-slate-700">{user.username}</p>
+        <div className="mt-auto rounded-xl border border-[#253047] bg-[#111827] px-3 py-3">
+          <p className="text-xs font-semibold text-slate-200">{user.username}</p>
           <p className="truncate text-xs text-slate-400">{user.email}</p>
         </div>
       </aside>
 
-      <header className="fixed inset-x-0 top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/80 pl-72 pr-8 backdrop-blur">
-        <p className="text-sm text-slate-500">A calm workspace for your deployments.</p>
-        <span className="flex items-center gap-3 text-sm text-slate-600">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-emerald-100 font-semibold text-emerald-800">
+      <header className="fixed inset-x-0 top-0 z-10 flex h-16 items-center justify-between border-b border-[#253047] bg-[#090d16]/90 pl-72 pr-8 backdrop-blur">
+        <p className="text-sm text-slate-400">Connect code. Deploy instantly. We handle the infrastructure.</p>
+        <span className="flex items-center gap-3 text-sm text-slate-300">
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-indigo-500/15 font-semibold text-indigo-300">
             {initial}
           </span>
           <span className="hidden font-medium sm:inline">{user.username}</span>
@@ -165,11 +166,20 @@ export default function App() {
     setApps([]);
   };
 
+  const handleAppChange = useCallback((updatedApp: AppRecord) => {
+    setApps((currentApps) => {
+      const exists = currentApps.some((app) => app.id === updatedApp.id);
+      return exists
+        ? currentApps.map((app) => (app.id === updatedApp.id ? updatedApp : app))
+        : [updatedApp, ...currentApps];
+    });
+  }, []);
+
   if (loading) {
     return (
-      <div className="grid min-h-screen place-items-center text-sm text-slate-500">
+      <div className="grid min-h-screen place-items-center bg-[#090d16] text-sm text-slate-400">
         <div className="flex flex-col items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-400 text-xs font-bold text-slate-900">CF</span>
+          <span className="grid h-10 w-10 place-items-center rounded-lg bg-indigo-500 text-xs font-bold text-white">CF</span>
           Loading CloudForge...
         </div>
       </div>
@@ -188,14 +198,12 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Dashboard apps={apps} username={user.username} />} />
           <Route path="/applications" element={<ApplicationsPage apps={apps} loading={loading} onAppsChange={setApps} />} />
-          <Route path="/applications/new" element={<NewApplication />} />
+          <Route path="/applications/new" element={<NewApplication onAppChange={handleAppChange} />} />
           <Route
             path="/applications/:id"
             element={
               <ApplicationDetails
-                onAppChange={(updatedApp) => {
-                  setApps((currentApps) => currentApps.map((app) => (app.id === updatedApp.id ? updatedApp : app)));
-                }}
+                onAppChange={handleAppChange}
               />
             }
           />
