@@ -18,7 +18,7 @@ DeployEvent DeployEvent::fromJson(const nlohmann::json& data)
     {
         EnvironmentVariable variable;
 
-        variable.key = env.at("key");
+        variable.key = env.at("key");//or env[key]
         variable.value = env.at("value");
 
         event.environmentVariables.push_back(variable);

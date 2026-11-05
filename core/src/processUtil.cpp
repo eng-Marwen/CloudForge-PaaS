@@ -6,9 +6,13 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-namespace {
-void closeFd(int fd) { if (fd >= 0) close(fd); }
+namespace { //annonymous namespace could be used just in this file
+void closeFd(int fd) { if (fd >= 0) close(fd); } //close one side of a pipe
 }
+// namespace= a way to groupe vars functions classes and control how they could be accessed
+//namespace Utils {void hello() {std::cout << "Hello\n";}} //named namespace could be used accros files
+//to call it u need Utils::hello() and if u type using namespace Utils u just hello()
+
 
 int runProcess(const std::vector<std::string>& args,
                const std::string* input,
@@ -27,6 +31,12 @@ int runProcess(const std::vector<std::string>& args,
         closeFd(inPipe[0]); closeFd(inPipe[1]);
         return -1;
     }
+    //pipe = tunnel has two sides the write end and the read end
+    //input :what parent sends to the child throught inpipe
+    //output: what child sendq to the parent throught outpipe
+    //Parent <---->child bidirectional communication 
+    //inPipe : Parent->|writeend inPipe[1] -->buffer--> inPipe[1] readend|-->	Child	#parent send to child
+    //outPipe : child->|writeend outPipe[1] -->buffer--> outPipe[1] readend|-->	parent	#child send to parent
 
     pid_t pid = fork();
 
@@ -42,10 +52,15 @@ int runProcess(const std::vector<std::string>& args,
             close(inPipe[0]); close(inPipe[1]);
         }
         if (output) {
-            dup2(outPipe[1], STDOUT_FILENO);
+            dup2(outPipe[1], STDOUT_FILENO);//read -end redirection to the std
+            //    source       destination
             if (mergeStderr) dup2(outPipe[1], STDERR_FILENO);
             close(outPipe[0]); close(outPipe[1]);
         }
+    // Constant	Value	Default purpose
+    // STDIN_FILENO	    0	Read input
+    // STDOUT_FILENO	1	Write normal output
+    // STDERR_FILENO	2	Write errors
 
         std::vector<char*> argv;
         for (const auto& a : args) argv.push_back(const_cast<char*>(a.c_str()));
@@ -58,7 +73,7 @@ int runProcess(const std::vector<std::string>& args,
     if (input) {
         close(inPipe[0]);
 
-        size_t written = 0;
+        size_t written = 0;//unsigned int ssize_t:signed int
         while (written < input->size()) {
             ssize_t n = write(inPipe[1], input->data() + written,
                               input->size() - written);
