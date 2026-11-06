@@ -1,8 +1,9 @@
 import "dotenv/config";
 import app from "./app.js";
-import { initializeDatabase } from "./db/database.js";
+import prisma, { initializeDatabase } from "./db/database.js";
 import { connectRabbitMQ, onRabbitMQConnected } from "./queue/queue.js";
-import { startDeploymentResultsConsumer } from "./queue/consumer.js";
+import { deploymentMessage, startDeploymentResultsConsumer } from "./queue/consumer.js";
+import { publishDeploymentUpdate } from "./events/deploymentEvents.js";
 const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, () => {
@@ -15,11 +16,21 @@ const server = app.listen(PORT, () => {
 
     onRabbitMQConnected(() =>
     startDeploymentResultsConsumer(async (result) => {
-        // Replace with your real DB update, e.g.:
-        // await db.query(
-        //   "UPDATE applications SET status = $1, stage = $2, error = $3 WHERE id = $4",
-        //   [result.status, result.stage, result.error, result.applicationId]
-        // );
+        // Core status "deployed" maps to the UI's stable "running" state.
+        const updatedApp = await prisma.application.update({
+            where: { id: result.applicationId },
+            include: { environmentVariables: true },
+            data: {
+                status: result.status === "deployed" ? "running" : result.status,
+                isDeployed: result.status === "deployed",
+                deploymentStage: result.stage ?? null,
+                deploymentMessage: deploymentMessage(result.stage, result.status),
+                deploymentImage: result.image ?? undefined,
+                deploymentError: result.error ?? null,
+                deploymentUrl: result.url ?? undefined,
+            },
+        });
+        publishDeploymentUpdate(result.applicationId, updatedApp);
     })
 );
     connectRabbitMQ();
