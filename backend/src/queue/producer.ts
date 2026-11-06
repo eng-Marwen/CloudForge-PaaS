@@ -9,10 +9,7 @@ export const publishDeployEvent = async (data: any) => {
         durable: true,
     });
 
-    const message = {
-        event: "deploy",
-        data,
-    };
+    const message = { event: "deploy", data };
 
     const payload = Buffer.from(JSON.stringify(message));
 
@@ -33,4 +30,15 @@ export const publishDeployEvent = async (data: any) => {
         queue: QUEUE_NAME,
         acceptedByBuffer,
     });
+};
+
+export const publishDeleteEvent = async (applicationId: number) => {
+    const channel = getChannel();
+    await channel.assertQueue(QUEUE_NAME, { durable: true });
+    channel.sendToQueue(
+        QUEUE_NAME,
+        Buffer.from(JSON.stringify({ event: "delete", data: { applicationId } })),
+        { persistent: true }
+    );
+    console.log("[RabbitMQ] Delete command queued", { applicationId, queue: QUEUE_NAME });
 };
