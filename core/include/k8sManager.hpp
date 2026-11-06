@@ -23,6 +23,7 @@ public:
 
     // Waits until the new pods are Ready.
     static bool waitForRollout(const DeployEvent& event, std::string& error);
+    static bool remove(const DeployEvent& event, std::string& error);
 };
 
 #endif

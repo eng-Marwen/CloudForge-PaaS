@@ -214,6 +214,27 @@ bool K8sManager::waitForRollout(const DeployEvent& event, std::string& error)
     return true;
 }
 
+bool K8sManager::remove(const DeployEvent& event, std::string& error)
+{
+    const std::string ns = envOr("K8S_NAMESPACE", "cloudforge");
+    const std::string name = appName(event);
+    for (const std::string& resource : {
+        "deployment/" + name,
+        "service/" + name,
+        "secret/" + name + "-env"
+    }) {
+        std::string output;
+        const int code = runProcess(kubectl({
+            "delete", resource, "-n", ns, "--ignore-not-found=true"
+        }), nullptr, &output, true);
+        if (code != 0) {
+            error = "kubectl delete failed: " + tail(output);
+            return false;
+        }
+    }
+    return true;
+}
+
 bool K8sManager::getUrl(const DeployEvent& event,
                         std::string& url,
                         std::string& error)
@@ -254,4 +275,3 @@ bool K8sManager::getUrl(const DeployEvent& event,
     url = "http://" + ip + ":" + trim(portOut);
     return true;
 }
-
