@@ -12,6 +12,17 @@ interface DeploymentResult {
     url?: string;
 }
 
+export function deploymentMessage(stage: string | undefined, status: DeploymentResult["status"]): string {
+    if (status === "failed") return `Deployment failed during ${stage ?? "an unknown stage"}.`;
+    return {
+        cloned: "Repository cloned. Checking the application source.",
+        built: "Container image built successfully.",
+        pushed: "Container image pushed to Docker Hub.",
+        "k8s-applied": "Kubernetes manifests applied. Waiting for the application pod.",
+        deployed: "Application is live and ready.",
+    }[stage ?? ""] ?? "Deployment is in progress.";
+}
+
 interface DeploymentResultMessage {
     event: "deployment.progress" | "deployment.succeeded" | "deployment.failed";
     data: DeploymentResult;
