@@ -147,6 +147,7 @@ export async function getApp(req: Request, res: Response): Promise<void> {
 }
 
 export async function getAppLogs(req: Request, res: Response): Promise<void> {
+	res.setHeader("Cache-Control", "no-store");
 	const id = getAppId(req.params.id);
 	if (!id) {
 		res.status(400).json({ error: "Invalid application id" });
@@ -323,7 +324,11 @@ export async function updateApp(req: Request, res: Response): Promise<void> {
 		});
 	});
 
-	await publishDeployEvent(app);
+	if (data.status === "deploying") {
+		await publishDeployEvent(app);
+	} else if (data.status === "failed" && data.isDeployed === false) {
+		await publishDeleteEvent(id);
+	}
 	res.json({ app });
 }
 
