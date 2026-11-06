@@ -82,6 +82,7 @@ target_link_libraries(cloudforge_core
 target_compile_definitions(cloudforge_core PRIVATE
     CLOUDFORGE_REPOS_DIR="${CMAKE_SOURCE_DIR}/repos"
     CLOUDFORGE_K8S_DIR="${CMAKE_SOURCE_DIR}/k8s"
+    CLOUDFORGE_ENV_FILE="${CMAKE_SOURCE_DIR}/.env"
 )
 
 #============================================
