@@ -44,6 +44,14 @@ TypeScript/Express backend ───── PostgreSQL
 Deployment results are published on the `deployment.results` channel and are
 consumed by the backend to update application state.
 
+### Platform system architecture
+
+![CloudForge platform system architecture](./frontend/src/assets/paas.jpeg)
+
+The diagram shows the main runtime relationships between the user interface,
+Node.js backend, PostgreSQL, RabbitMQ, C++ deployment core, Git/Docker
+tooling, Kubernetes, and the virtual-machine infrastructure.
+
 ## Detailed architecture
 
 ### Backend
