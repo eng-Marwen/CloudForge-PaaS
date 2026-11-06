@@ -144,9 +144,24 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    backendApi.apps.list()
-      .then(({ data }) => setApps(data.apps))
-      .catch((error: unknown) => setAuthError(getApiError(error, "Unable to load applications")));
+
+    let active = true;
+    const loadApps = () => {
+      backendApi.apps.list()
+        .then(({ data }) => {
+          if (active) setApps(data.apps);
+        })
+        .catch((error: unknown) => {
+          if (active) setAuthError(getApiError(error, "Unable to load applications"));
+        });
+    };
+
+    loadApps();
+    const refreshTimer = window.setInterval(loadApps, 3000);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+    };
   }, [user]);
 
   const handleAuthenticated = (authenticatedUser: User) => {

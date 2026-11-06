@@ -50,9 +50,9 @@ export default function Auth({ onAuthenticated }: { onAuthenticated: (user: User
   }
 
   return (
-    <main className="min-h-screen px-4 py-5 sm:px-8 sm:py-8">
-      <div className="page-enter mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-6xl overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] lg:grid-cols-[1.05fr_.95fr]">
-        <section className="relative overflow-hidden bg-slate-900 px-7 py-8 text-white sm:px-12 sm:py-12">
+    <main className="min-h-screen bg-[#090d16] px-4 py-5 sm:px-8 sm:py-8">
+      <div className="page-enter mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-6xl overflow-hidden rounded-3xl border border-[#253047] bg-[#111827] shadow-[0_20px_50px_rgba(0,0,0,0.2)] lg:grid-cols-[1.05fr_.95fr]">
+        <section className="relative overflow-hidden bg-[#0d1320] px-7 py-8 text-white sm:px-12 sm:py-12">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(52,211,153,0.22),transparent_45%)]" />
           <div className="relative flex h-full flex-col">
             <div className="flex items-center gap-3">
@@ -83,7 +83,7 @@ export default function Auth({ onAuthenticated }: { onAuthenticated: (user: User
             <p className="mt-16 text-xs text-slate-500 sm:mt-auto">A focused control room for modern deployments.</p>
           </div>
         </section>
-        <section className="flex items-center px-6 py-10 sm:px-12">
+        <section className="flex items-center bg-white px-6 py-10 sm:px-12">
           <form autoComplete="off" className="mx-auto w-full max-w-md" onSubmit={submit}>
             <div className="mb-8">
               <p className="text-xs font-bold uppercase tracking-[.18em] text-emerald-700">
@@ -99,26 +99,25 @@ export default function Auth({ onAuthenticated }: { onAuthenticated: (user: User
             {registering && (
               <label className="mb-4 grid gap-2 text-sm font-semibold text-slate-600">
                 Username
-                <input className={field} value={username} onChange={(event) => setUsername(event.target.value)} required />
+                <input className={`${field} bg-white! text-slate-900!`} value={username} onChange={(event) => setUsername(event.target.value)} required />
               </label>
             )}
             {registering && (
               <label className="mb-4 grid gap-2 text-sm font-semibold text-slate-600">
-                Phone number
-                <span className="text-xs font-normal text-slate-400">Optional</span>
-                <input className={field} type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} />
+                Phone number <span className="text-xs font-normal text-slate-500">Optional</span>
+                <input className={`${field} bg-white! text-slate-900!`} type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} />
               </label>
             )}
             <label className="mb-4 grid gap-2 text-sm font-semibold text-slate-600">
               Email
-              <input className={field} type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+              <input className={`${field} bg-white! text-slate-900!`} type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
             </label>
             <label className="mb-4 grid gap-2 text-sm font-semibold text-slate-600">
               Password
-              <div className="flex overflow-hidden rounded-xl border border-slate-200 focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-500/10">
+              <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white! focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-500/10">
                 <input
                   autoComplete="off"
-                  className="min-w-0 flex-1 px-3.5 py-2.5 font-normal outline-none"
+                  className="min-w-0 flex-1 bg-white! px-3.5 py-2.5 font-normal text-slate-900! outline-none"
                   type={showPassword ? "text" : "password"}
                   minLength={8}
                   value={password}
@@ -137,12 +136,12 @@ export default function Auth({ onAuthenticated }: { onAuthenticated: (user: User
                       ? "border-red-300 focus-within:ring-red-500/10"
                       : passwordsMatch
                         ? "border-emerald-400 focus-within:ring-emerald-500/10"
-                        : "border-slate-200 focus-within:border-emerald-400 focus-within:ring-emerald-500/10"
+                        : "border-slate-200 bg-white! focus-within:border-indigo-400 focus-within:ring-indigo-500/10"
                   }`}
                 >
                   <input
                     autoComplete="off"
-                    className="min-w-0 flex-1 px-3.5 py-2.5 font-normal outline-none"
+                    className="min-w-0 flex-1 bg-white! px-3.5 py-2.5 font-normal text-slate-900! outline-none"
                     type={showConfirmPassword ? "text" : "password"}
                     minLength={8}
                     value={confirmPassword}
@@ -155,14 +154,14 @@ export default function Auth({ onAuthenticated }: { onAuthenticated: (user: User
                 {passwordsDoNotMatch && <span className="text-xs font-medium text-red-600">Passwords do not match</span>}
               </label>
             )}
-            {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+            {error && <p className="mb-4 text-sm text-red-300">{error}</p>}
             <button
-              className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 transition hover:bg-emerald-700"
+              className="w-full rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20 transition hover:bg-indigo-400"
               disabled={submitting}
             >
               {submitting ? "Please wait..." : registering ? "Create account" : "Sign in"}
             </button>
-            <button type="button" className="mt-5 w-full text-sm text-slate-500 transition hover:text-slate-800" onClick={switchAuthMode}>
+            <button type="button" className="mt-5 w-full text-sm text-slate-400 transition hover:text-slate-200" onClick={switchAuthMode}>
               {registering ? "Already have an account? Sign in" : "Need an account? Register"}
             </button>
           </form>

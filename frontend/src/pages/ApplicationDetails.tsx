@@ -123,7 +123,6 @@ export default function ApplicationDetails({ onAppChange }: { onAppChange: (app:
     <>
       <Header
         title={app.name}
-        underlineTitle
         subtitle="Application details and environment configuration."
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -228,30 +227,28 @@ export default function ApplicationDetails({ onAppChange }: { onAppChange: (app:
           <div className="rounded-2xl border border-[#253047] bg-[#0d1320] p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Deployment progress</p>
             <div className="mt-5 overflow-x-auto pb-2">
-              <div className="flex min-w-[560px] items-start">
+              <div className="flex min-w-140 items-start">
                 {["cloned", "built", "pushed", "k8s-applied", "deployed"].map((stage, index, stages) => {
                   const reached = app.deploymentStage === "deployed"
                     || index <= stages.indexOf(app.deploymentStage ?? "");
                   return (
-                    <div className="flex min-w-0 flex-1 items-start" key={stage}>
-                      <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center">
-                        <span
-                          className={`grid h-11 w-11 place-items-center rounded-full border-2 text-lg font-bold ${
-                            reached
-                              ? "border-emerald-300 bg-emerald-400/20 text-emerald-200"
-                              : "border-red-400/70 bg-red-400/10 text-red-300"
-                          }`}
-                          aria-label={`${stage}: ${reached ? "completed" : "not completed"}`}
-                        >
-                          {reached ? "✓" : "×"}
-                        </span>
-                        <span className={`text-xs font-semibold ${reached ? "text-emerald-200" : "text-red-300"}`}>
-                          {stage}
-                        </span>
-                      </div>
+                    <div className="relative flex min-w-0 flex-1 flex-col items-center gap-2.5 text-center" key={stage}>
                       {index < stages.length - 1 && (
-                        <span className={`mt-[22px] h-0.5 flex-1 ${reached ? "bg-emerald-400/70" : "bg-[#3a465e]"}`} />
+                        <span className={`absolute left-[calc(50%+22px)] right-[calc(-50%+22px)] top-5.5 h-0.5 ${reached ? "bg-emerald-400/70" : "bg-[#3a465e]"}`} />
                       )}
+                      <span
+                        className={`relative z-10 grid h-11 w-11 place-items-center rounded-full border-2 text-lg font-bold ${
+                          reached
+                            ? "border-emerald-300 bg-emerald-400/20 text-emerald-200"
+                            : "border-red-400/70 bg-red-400/10 text-red-300"
+                        }`}
+                        aria-label={`${stage}: ${reached ? "completed" : "not completed"}`}
+                      >
+                        {reached ? "✓" : "×"}
+                      </span>
+                      <span className={`relative z-10 text-xs font-semibold ${reached ? "text-emerald-200" : "text-red-300"}`}>
+                        {stage}
+                      </span>
                     </div>
                   );
                 })}
@@ -260,21 +257,30 @@ export default function ApplicationDetails({ onAppChange }: { onAppChange: (app:
             <div className="mt-4 min-w-0 max-w-full overflow-hidden rounded-xl bg-slate-950 p-4 font-mono text-xs leading-6 text-emerald-200">
               <p className="break-all">$ cloudforge deploy {app.name}</p>
               {[
-                ["cloned", "Repository cloned successfully."],
-                ["built", "Container image built successfully."],
-                ["pushed", "Image pushed to Docker Hub."],
+                ["cloned", "Repository cloned."],
+                ["built", "Container image built."],
+                ["pushed", "Image pushed to Docker registry."],
                 ["k8s-applied", "Kubernetes manifests applied."],
-                ["deployed", "Application is live and ready."],
+                ["deployed", "Application deployed."],
               ].map(([stage, message]) => {
                 const stageIndex = ["cloned", "built", "pushed", "k8s-applied", "deployed"].indexOf(stage);
                 const currentIndex = ["cloned", "built", "pushed", "k8s-applied", "deployed"].indexOf(app.deploymentStage ?? "");
                 return stageIndex <= currentIndex ? <p key={stage}>✓ {message}</p> : null;
               })}
-              {app.status === "deploying" && <p className="text-amber-300">… {app.deploymentMessage ?? "Deployment in progress."}</p>}
+              {app.status === "deploying" && (
+                <p className="text-amber-300">
+                  …{" "}
+                  {({
+                    cloned: "Building container image...",
+                    built: "Pushing image to registry...",
+                    pushed: "Applying Kubernetes manifests...",
+                    "k8s-applied": "Deploying application...",
+                  } as Record<string, string>)[app.deploymentStage ?? ""] ?? "Cloning repository..."}
+                </p>
+              )}
               {app.status === "failed" && <p className="text-red-300">✕ {app.deploymentMessage ?? "Deployment failed."}</p>}
             </div>
             {app.deploymentError && <p className="mt-3 text-sm text-red-300">{app.deploymentError}</p>}
-            {app.deploymentMessage && <p className="mt-3 text-sm text-slate-300">{app.deploymentMessage}</p>}
             {app.deploymentUrl && (() => {
               let address = app.deploymentUrl;
               try {
@@ -302,7 +308,7 @@ export default function ApplicationDetails({ onAppChange }: { onAppChange: (app:
             </button>
             {logsError && <p className="mt-3 text-sm text-red-300">{logsError}</p>}
             {logs && (
-              <pre className="mt-3 max-h-80 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-xl bg-slate-950 p-4 text-xs leading-5 text-emerald-100">
+              <pre className="mt-3 max-h-80 max-w-full overflow-auto whitespace-pre-wrap wrap-break-word rounded-xl bg-slate-950 p-4 text-xs leading-5 text-emerald-100">
                 {logs}
               </pre>
             )}

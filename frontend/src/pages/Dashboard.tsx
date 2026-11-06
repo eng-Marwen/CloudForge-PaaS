@@ -55,7 +55,7 @@ export default function Dashboard({ apps, username }: { apps: AppRecord[]; usern
           </Link>
         </div>
         <div className={`${panel} overflow-x-auto`}>
-          <table className="w-full min-w-[40rem] text-left text-sm">
+          <table className="w-full min-w-160 text-left text-sm">
             <thead className="bg-[#0d1320] text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-5 py-3">Application</th>
@@ -64,7 +64,7 @@ export default function Dashboard({ apps, username }: { apps: AppRecord[]; usern
                 <th className="px-5 py-3">Created</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#1b2537]">
               {apps.length === 0 ? (
                 <tr>
                   <td colSpan={4}>
