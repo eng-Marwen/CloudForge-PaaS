@@ -23,21 +23,16 @@ function createToken(user: PublicUser): { token: string; expiresAt: string } {
 }
 
 function setAuthCookie(res: Response, token: string): void {
-    res.cookie("auth_token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/"
-    });
+    const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+    res.setHeader(
+        "Set-Cookie",
+        `auth_token=${token}; HttpOnly; SameSite=Lax; Path=/${secure}`
+    );
 }
 
 export function logout(_req: Request, res: Response): void {
-    res.clearCookie("auth_token", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/"
-    });
+    const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+    res.setHeader("Set-Cookie", `auth_token=; Max-Age=0; HttpOnly; SameSite=Lax; Path=/${secure}`);
     res.json({ message: "Logged out" });
 }
 
@@ -75,6 +70,7 @@ export async function register(req: Request, res: Response): Promise<void> {
             res.status(409).json({ error: "Email is already registered" });
             return;
         }
+        console.error("[Auth] Registration failed:", error);
         res.status(500).json({ error: "Unable to register user" });
     }
 }
@@ -99,7 +95,8 @@ export async function login(req: Request, res: Response): Promise<void> {
         const auth = createToken(publicUser);
         setAuthCookie(res, auth.token);
         res.json({ user: publicUser, expiresAt: auth.expiresAt });
-    } catch {
+    } catch (error: unknown) {
+        console.error("[Auth] Login failed:", error);
         res.status(500).json({ error: "Unable to login user" });
     }
 }
@@ -110,12 +107,8 @@ export function getCurrentUser(req: Request, res: Response): void {
 
 export async function deleteAccount(req: Request, res: Response): Promise<void> {
     await prisma.user.delete({ where: { id: req.user!.id } });
-    res.clearCookie("auth_token", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/"
-    });
+    const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+    res.setHeader("Set-Cookie", `auth_token=; Max-Age=0; HttpOnly; SameSite=Lax; Path=/${secure}`);
     res.json({ message: "Account deleted" });
 }
 
