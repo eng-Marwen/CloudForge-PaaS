@@ -3,6 +3,8 @@ import {
     createApp,
     deleteApp,
     getApp,
+    getAppLogs,
+    streamAppEvents,
     listApps,
     updateApp
 } from "../controllers/appController.js";
@@ -13,6 +15,8 @@ const router = Router();
 router.use(requireAuth);
 router.get("/", listApps);
 router.post("/", createApp);
+router.get("/:id/logs", getAppLogs);
+router.get("/:id/events", streamAppEvents);
 router.get("/:id", getApp);
 router.patch("/:id", updateApp);
 router.delete("/:id", deleteApp);
