@@ -1,6 +1,11 @@
 import type { Request, Response } from "express";
 import prisma from "../db/database.js";
-import {publishDeployEvent} from "../queue/producer.js"
+import { publishDeleteEvent, publishDeployEvent } from "../queue/producer.js"
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { subscribeToDeployment } from "../events/deploymentEvents.js";
+
+const execFileAsync = promisify(execFile);
 
 function getAppId(value: string | string[]): number | undefined {
 	if (Array.isArray(value)) {
@@ -111,7 +116,7 @@ export async function createApp(req: Request, res: Response): Promise<void> {
 			repository: repository.trim(),
 			...(branch?.trim() ? { branch: branch.trim() } : {}),
 			...(isDeployed !== undefined ? { isDeployed } : {}),
-			...(status !== undefined ? { status } : {}),
+			status: status ?? "deploying",
 			environmentVariables: environmentVariables ? { create: environmentVariables } : undefined
 		},
 		include: appInclude
@@ -139,6 +144,85 @@ export async function getApp(req: Request, res: Response): Promise<void> {
 	}
 
 	res.json({ app });
+}
+
+export async function getAppLogs(req: Request, res: Response): Promise<void> {
+	const id = getAppId(req.params.id);
+	if (!id) {
+		res.status(400).json({ error: "Invalid application id" });
+		return;
+	}
+
+	const app = await prisma.application.findFirst({
+		where: { id, userId: getUserId(req) },
+		select: { id: true, isDeployed: true }
+	});
+	if (!app) {
+		res.status(404).json({ error: "Application not found" });
+		return;
+	}
+	if (!app.isDeployed) {
+		res.status(409).json({ error: "Logs are available after the application is deployed" });
+		return;
+	}
+
+	const namespace = process.env.K8S_NAMESPACE || "cloudforge";
+	const context = process.env.K8S_CONTEXT;
+	const args = [
+		...(context ? ["--context", context] : []),
+		"logs",
+		"deployment/app-" + app.id,
+		"--namespace",
+		namespace,
+		"--all-containers",
+		"--tail=200",
+		"--prefix",
+	];
+
+	try {
+		const { stdout, stderr } = await execFileAsync("kubectl", args, {
+			timeout: 15_000,
+			maxBuffer: 512 * 1024,
+		});
+		res.json({ logs: [stdout, stderr].filter(Boolean).join("\n") });
+	} catch (error: unknown) {
+		const details = error as { stdout?: string; stderr?: string; message?: string };
+		console.error("[Kubernetes] Failed to read application logs:", error);
+		res.status(502).json({
+			error: details.stderr?.trim() || details.stdout?.trim() || details.message || "Unable to read application logs",
+		});
+	}
+}
+
+export async function streamAppEvents(req: Request, res: Response): Promise<void> {
+	const id = getAppId(req.params.id);
+	if (!id) {
+		res.status(400).json({ error: "Invalid application id" });
+		return;
+	}
+
+	const app = await prisma.application.findFirst({
+		where: { id, userId: getUserId(req) },
+		select: { id: true },
+	});
+	if (!app) {
+		res.status(404).json({ error: "Application not found" });
+		return;
+	}
+
+	res.status(200);
+	res.setHeader("Content-Type", "text/event-stream");
+	res.setHeader("Cache-Control", "no-cache");
+	res.setHeader("Connection", "keep-alive");
+	res.flushHeaders();
+	res.write(": connected\n\n");
+
+	const unsubscribe = subscribeToDeployment(id, res);
+	const heartbeat = setInterval(() => res.write(": heartbeat\n\n"), 15_000);
+	req.on("close", () => {
+		clearInterval(heartbeat);
+		unsubscribe();
+	});
 }
 
 export async function updateApp(req: Request, res: Response): Promise<void> {
@@ -198,6 +282,7 @@ export async function updateApp(req: Request, res: Response): Promise<void> {
 			return;
 		}
 		data.status = status;
+		if (status === "deploying") data.isDeployed = false;
 	}
 	if (rawEnvironmentVariables !== undefined && environmentVariables === undefined) {
 		res.status(400).json({ error: "Environment variables must have unique non-empty keys and string values" });
@@ -223,6 +308,15 @@ export async function updateApp(req: Request, res: Response): Promise<void> {
 			where: { id },
 			data: {
 				...data,
+				...(data.status === "deploying"
+					? {
+						deploymentStage: null,
+						deploymentMessage: null,
+						deploymentImage: null,
+						deploymentError: null,
+						deploymentUrl: null
+					}
+					: {}),
 				environmentVariables: environmentVariables !== undefined ? { create: environmentVariables } : undefined
 			},
 			include: appInclude
@@ -240,14 +334,17 @@ export async function deleteApp(req: Request, res: Response): Promise<void> {
 		return;
 	}
 
-	const result = await prisma.application.deleteMany({
-		where: { id, userId: getUserId(req) }
+	const existing = await prisma.application.findFirst({
+		where: { id, userId: getUserId(req) },
+		select: { id: true },
 	});
 
-	if (result.count === 0) {
+	if (!existing) {
 		res.status(404).json({ error: "Application not found" });
 		return;
 	}
 
+	await publishDeleteEvent(id);
+	await prisma.application.delete({ where: { id } });
 	res.status(204).send();
 }
