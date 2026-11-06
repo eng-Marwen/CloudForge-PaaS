@@ -16,6 +16,7 @@ private:
     // Full pipeline: clone -> validate -> build -> push (k8s later).
     void handleDeploy(amqp_connection_state_t connection,
                       const DeployEvent& event);
+    void handleDelete(int applicationId);
 
     // Intermediate step reached: event "deployment.progress", status "deploying".
     void publishProgress(

@@ -180,11 +180,18 @@ void Queue::consume()
 
         try
         {
-            event = parseMessage(message);
-            std::cout << "\n=== Deployment Event ===\nID:" << event->id << "\n";
-
-            handleDeploy(connection, *event);
+            const auto payload = nlohmann::json::parse(message);
+            const std::string eventType = payload.at("event");
+            if (eventType == "delete") {
+                const int applicationId = payload.at("data").at("applicationId");
+                handleDelete(applicationId);
+            } else {
+                event = DeployEvent::fromJson(payload.at("data"));
+                std::cout << "\n=== Deployment Event ===\nID:" << event->id << "\n";
+                handleDeploy(connection, *event);
+            }
         }
+
         catch (const std::exception& e)
         {
             std::cerr << "Failed to process message: "<< e.what()<< "\n";
@@ -214,6 +221,19 @@ void Queue::consume()
     );
 
     amqp_destroy_connection(connection);
+}
+
+void Queue::handleDelete(int applicationId)
+{
+    DeployEvent event;
+    event.id = applicationId;
+    std::string error;
+    if (!K8sManager::remove(event, error)) {
+        std::cerr << "Failed to remove application " << applicationId
+                  << " from Kubernetes: " << error << '\n';
+        return;
+    }
+    std::cout << "Removed app-" << applicationId << " from Kubernetes\n";
 }
 
 DeployEvent Queue::parseMessage(const std::string& message)
