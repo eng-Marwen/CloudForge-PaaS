@@ -2,6 +2,7 @@ import { useState } from "react";
 import { backendApi, getApiError } from "../lib/api";
 import { field, VisibilityToggle } from "./shared";
 import type { User } from "./types";
+import logo from "../assets/logo.png";
 
 export default function Auth({ onAuthenticated }: { onAuthenticated: (user: User) => void }) {
   const [registering, setRegistering] = useState(false);
@@ -56,8 +57,8 @@ export default function Auth({ onAuthenticated }: { onAuthenticated: (user: User
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(52,211,153,0.22),transparent_45%)]" />
           <div className="relative flex h-full flex-col">
             <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-400 text-xs font-bold text-slate-900">CF</span>
-              <span className="text-lg font-semibold tracking-tight">CloudForge</span>
+              <img className="h-35 w-35 object-contain" src={logo} alt="" />
+              <span className="text-6xl font-semibold tracking-tight">CloudForge</span>
             </div>
             <div className="mt-20 max-w-lg sm:mt-auto sm:mb-auto sm:pt-20">
               <p className="text-xs font-bold uppercase tracking-[.2em] text-emerald-300">Deploy with clarity</p>

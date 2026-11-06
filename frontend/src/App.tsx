@@ -17,6 +17,7 @@ import NewApplication from "./pages/NewApplication";
 import SettingsPage from "./pages/Settings";
 import { ConfirmDialog } from "./pages/shared";
 import type { AppRecord, User } from "./pages/types";
+import logo from "./assets/logo.png";
 
 const links = [
   { to: "/", label: "Dashboard", icon: DashboardIcon },
@@ -63,7 +64,7 @@ function Layout({ children, user, onLogout }: { children: ReactNode; user: User;
     <div className="min-h-screen bg-[#090d16] text-slate-100">
       <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-[#253047] bg-[#0d1320] px-4 py-6">
         <strong className="flex items-center gap-3 px-2 text-base tracking-tight">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-500 text-xs font-bold text-white">CF</span>
+          <img className="h-24 w-24 object-contain" src={logo} alt="" />
           CloudForge
         </strong>
         <p className="mt-10 px-3 text-[11px] font-bold uppercase tracking-[.18em] text-slate-400">
@@ -194,7 +195,7 @@ export default function App() {
     return (
       <div className="grid min-h-screen place-items-center bg-[#090d16] text-sm text-slate-400">
         <div className="flex flex-col items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-lg bg-indigo-500 text-xs font-bold text-white">CF</span>
+          <img className="h-10 w-10 object-contain" src={logo} alt="" />
           Loading CloudForge...
         </div>
       </div>
