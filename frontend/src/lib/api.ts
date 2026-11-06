@@ -33,7 +33,7 @@ export const backendApi = {
     update: (id: number, payload: ApplicationUpdate) =>
       api.patch<{ app: AppRecord }>(`/apps/${id}`, payload),
     remove: (id: number) => api.delete(`/apps/${id}`),
-    logs: (id: number) => api.get<{ logs: string }>(`/apps/${id}/logs`),
+    logs: (id: number) => api.get<{ logs: string }>(`/apps/${id}/logs`, { params: { _: Date.now() } }),
   },
 };
 
