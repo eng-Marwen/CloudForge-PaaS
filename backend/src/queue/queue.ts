@@ -2,6 +2,7 @@ import amqp, { Channel } from "amqplib";
 
 let channel: Channel | undefined;
 const RABBITMQ_RETRY_MS = 5000;
+const RABBITMQ_CHANNEL_TIMEOUT_MS = 15000;
 const onConnectedHandlers: Array<() => Promise<void>> = [];
 
 // Register things that must be re-created on every (re)connect.
@@ -54,4 +55,20 @@ export const getChannel = () => {
     throw new Error("RabbitMQ channel not initialized");
   }
   return channel;
+};
+
+export const waitForChannel = async (): Promise<Channel> => {
+   const startedAt = Date.now();
+
+   while (true) {
+     if (channel) {
+       return channel;
+     }
+
+     if (Date.now() - startedAt >= RABBITMQ_CHANNEL_TIMEOUT_MS) {
+       throw new Error("RabbitMQ channel is unavailable");
+     }
+
+     await new Promise((resolve) => setTimeout(resolve, 100));
+   }
 };

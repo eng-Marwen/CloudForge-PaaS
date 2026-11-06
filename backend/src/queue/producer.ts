@@ -1,9 +1,9 @@
-import { getChannel } from "./queue.js";
+import { waitForChannel } from "./queue.js";
 
 const QUEUE_NAME = "deploy.events";
 
 export const publishDeployEvent = async (data: any) => {
-    const channel = getChannel();
+    const channel = await waitForChannel();
 
     await channel.assertQueue(QUEUE_NAME, {
         durable: true,
@@ -27,13 +27,14 @@ export const publishDeployEvent = async (data: any) => {
     );
 
     console.log("[RabbitMQ] Deploy event sent", {
+        applicationId: data.id,
         queue: QUEUE_NAME,
         acceptedByBuffer,
     });
 };
 
 export const publishDeleteEvent = async (applicationId: number) => {
-    const channel = getChannel();
+    const channel = await waitForChannel();
     await channel.assertQueue(QUEUE_NAME, { durable: true });
     channel.sendToQueue(
         QUEUE_NAME,

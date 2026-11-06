@@ -241,6 +241,11 @@ export async function updateApp(req: Request, res: Response): Promise<void> {
 		status?: string;
 		environmentVariables?: unknown;
 	};
+	console.log("[Deploy] Update request received", {
+		applicationId: id,
+		status,
+		isDeployed,
+	});
 	const environmentVariables = parseEnvironmentVariables(rawEnvironmentVariables);
 	const data: { name?: string; repository?: string; branch?: string; isDeployed?: boolean; status?: string } = {};
 
@@ -324,8 +329,21 @@ export async function updateApp(req: Request, res: Response): Promise<void> {
 		});
 	});
 
+	console.log("[Deploy] Update decision", {
+		applicationId: app.id,
+		status: data.status,
+		isDeployed: data.isDeployed,
+	});
+
 	if (data.status === "deploying") {
+		console.log("[Deploy] Publishing deployment event", {
+			applicationId: app.id,
+			status: app.status,
+		});
 		await publishDeployEvent(app);
+		console.log("[Deploy] Deployment event published", {
+			applicationId: app.id,
+		});
 	} else if (data.status === "failed" && data.isDeployed === false) {
 		await publishDeleteEvent(id);
 	}
